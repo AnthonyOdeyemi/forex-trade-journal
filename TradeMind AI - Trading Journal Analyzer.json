@@ -1,0 +1,535 @@
+{
+  "name": "TradeMind AI - Trading Journal Analyzer",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -816,
+        112
+      ],
+      "id": "413ad7c3-a601-4be9-92bd-34d050853241",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "zIsPtJwWYlQ5lBJM",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1BBd4KwNeeJaUfwBxNesQh1UJqN4cImEUrwISQX_dfQ8",
+          "mode": "list",
+          "cachedResultName": "TradeMind AI Journal (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BBd4KwNeeJaUfwBxNesQh1UJqN4cImEUrwISQX_dfQ8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1788603581,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BBd4KwNeeJaUfwBxNesQh1UJqN4cImEUrwISQX_dfQ8/edit#gid=1788603581"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1216,
+        -384
+      ],
+      "id": "73780d62-8e29-4f30-8ffc-246d06cde0ad",
+      "name": "Trade Submission Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "Bm7Vg6sMifCuAIUs",
+          "name": "Google Sheets Trigger account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2d420ae7-9037-4c37-b855-5da83fae1807",
+              "name": "pair",
+              "value": "={{ $json[\"Currency Pair\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "3648b64d-87c7-45f2-97d4-4d9e7592b427",
+              "name": "tradeType",
+              "value": "={{ $json[\"Trade Type\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a0df13a7-5535-45d0-8a73-5aa1eda7a3a1",
+              "name": "entry",
+              "value": "={{ $json[\"Entry Price\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "1799e4aa-b03e-44a4-94b3-81c6509101f6",
+              "name": "sl",
+              "value": "={{ $json[\"Stop Loss\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "46a4d7c3-0285-4ac2-8480-bf5206617d21",
+              "name": "tp",
+              "value": "={{ $json[\"Take Profit\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "a6f15e2e-531f-4e9a-8fcf-3de391eb19f6",
+              "name": "outcome",
+              "value": "={{$json[\"Trade Outcome\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "02a5b93d-e23f-49b1-b666-63f851ba2411",
+              "name": "emotion",
+              "value": "={{ $json[\"Emotional State Before Entry\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "1238493b-970e-4885-8c72-189ca3573489",
+              "name": "reason",
+              "value": "={{ $json[\"Why did you take this trade?\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a32fd3c3-4901-47f3-a019-bf5bdb9eb1d2",
+              "name": "lotSize",
+              "value": "={{ $json[\"Lot Size\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1024,
+        -384
+      ],
+      "id": "7e98820d-5009-47a8-8e36-9a110295ed1b",
+      "name": "Trade Data Normalizer"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nconst entry = parseFloat($json.entry);\nconst sl = parseFloat($json.sl);\nconst tp = parseFloat($json.tp);\n\nconst risk = Math.abs(entry - sl);\nconst reward = Math.abs(tp - entry);\n\nconst rr = reward / risk;\n\nreturn {\n  json: {\n    ...$json,\n    risk: risk.toFixed(5),\n    reward: reward.toFixed(5),\n    riskRewardRatio: rr.toFixed(2)\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -784,
+        -384
+      ],
+      "id": "b6b860d5-a999-464c-869a-1eb4282a7dcc",
+      "name": "Calculate Risk Metrics"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Currency Pair: {{$json.pair}}\n\nTrade Type: {{$json.tradeType}}\n\nEntry Price: {{$json.entry}}\n\nStop Loss: {{$json.sl}}\n\nTake Profit: {{$json.tp}}\n\nRisk Reward Ratio: {{$json.riskRewardRatio}}\n\nTrade Outcome: {{$json.outcome}}\n\nTrader Emotion: {{$json.emotion}}\n\nReason:\n{{$json.reason}}",
+        "options": {
+          "systemMessage": "You are an elite Forex trading psychologist and risk management analyst.\n\nAnalyze the submitted trade carefully.\n\nEvaluate:\n- Risk management\n- Emotional discipline\n- Trade reasoning\n- Risk-to-reward ratio\n\nKeep responses concise and professional.\n\nReturn ONLY valid JSON:\n\n{\n  \"score\": 0,\n  \"strengths\": \"\",\n  \"weaknesses\": \"\",\n  \"advice\": \"\"\n}\n\nIMPORTANT:\n- Maximum 2 strengths\n- Maximum 2 weaknesses\n- Maximum 2 concise advice points\n- Keep each point under 25 words\n\nKeep feedback concise and actionable. Limit each section to 2 short points maximum.\n\nReturn the trade score strictly as a whole number from 0 to 10.\nExamples:\n0 = extremely poor trade\n5 = average trade\n10 = exceptional trade\n\nNever return percentages or values above 10."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -832,
+        -48
+      ],
+      "id": "7d5a8076-6a8f-43f0-8c94-dbd0365db24d",
+      "name": "AI Trade Analysis Engine",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -496,
+        -256
+      ],
+      "id": "f25cd840-67a1-43a3-91bf-a8e2d6fef78a",
+      "name": "Merge AI & Trade Data"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// JSON Cleaner code\nlet raw = $json.output;\n\n// Remove markdown formatting\nraw = raw.replace(/```json/g, '').replace(/```/g, '').trim();\n\n// Parse JSON\nconst parsed = JSON.parse(raw);\n\nreturn {\n  json: {\n    pair: $json.pair,\n    tradeType: $json.tradeType,\n    entry: $json.entry,\n    sl: $json.sl,\n    tp: $json.tp,\n    riskRewardRatio: $json.riskRewardRatio,\n    outcome: $json.outcome,\n    emotion: $json.emotion,\n    reason: $json.reason,\n\n    score: parsed.score,\n    strengths: parsed.strengths,\n    weaknesses: parsed.weaknesses,\n    advice: parsed.advice\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        -256
+      ],
+      "id": "fee13c64-3adb-4e23-9363-c2aad39272b1",
+      "name": "Parse AI Analysis"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ae4534ff-2813-43d8-be65-d4b67f4285f3",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": 6,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -64,
+        -256
+      ],
+      "id": "8d3ba680-787e-451b-9e67-25e0ae5ab9bd",
+      "name": "Trade Quality Decision"
+    },
+    {
+      "parameters": {
+        "chatId": "503791609",
+        "text": "=✅ *TradeMind AI Analysis*\n\n📊 *Trade Score:* {{$json.score}}/10\n\n💪 *Strengths:*\n{{$json.strengths}}\n\n📌 *Advice:*\n{{$json.advice}}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        -368
+      ],
+      "id": "ac560f7e-b203-4383-8ab1-958df2a449fd",
+      "name": "Send Positive Trade Feedback",
+      "webhookId": "f072d599-0807-430e-bba9-352432ed857f",
+      "credentials": {
+        "telegramApi": {
+          "id": "t4k6Ot2QzlDXHqL9",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "503791609",
+        "text": "=⚠️ *TradeMind AI Warning*\n\n📊 *Trade Score:* {{$json.score}}/10\n\n❌ *Weaknesses:*\n{{$json.weaknesses}}\n\n📌 *Improvement Advice:*\n{{$json.advice}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        -48
+      ],
+      "id": "dce417fd-9217-4b00-835b-0c884f34b0d5",
+      "name": "Send Trade Warning",
+      "webhookId": "9fce16e0-4d4f-457e-9354-a40698aa539c",
+      "credentials": {
+        "telegramApi": {
+          "id": "t4k6Ot2QzlDXHqL9",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1BBd4KwNeeJaUfwBxNesQh1UJqN4cImEUrwISQX_dfQ8",
+          "mode": "list",
+          "cachedResultName": "TradeMind AI Journal (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BBd4KwNeeJaUfwBxNesQh1UJqN4cImEUrwISQX_dfQ8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1275507046,
+          "mode": "list",
+          "cachedResultName": "AI Analysis Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BBd4KwNeeJaUfwBxNesQh1UJqN4cImEUrwISQX_dfQ8/edit#gid=1275507046"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Trade Submission Trigger').item.json.Timestamp }}",
+            "Pair": "={{ $('Trade Quality Decision').item.json.pair }}",
+            "Score": "={{ $('Trade Quality Decision').item.json.score }}",
+            "Strengths": "={{ $('Trade Quality Decision').item.json.strengths }}",
+            "Weaknesses": "={{ $('Trade Quality Decision').item.json.weaknesses }}",
+            "Advice": "={{ $('Trade Quality Decision').item.json.advice }}",
+            "RR Ratio": "={{ $('Trade Quality Decision').item.json.riskRewardRatio }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Pair",
+              "displayName": "Pair",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Strengths",
+              "displayName": "Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Weaknesses",
+              "displayName": "Weaknesses",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Advice",
+              "displayName": "Advice",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "RR Ratio",
+              "displayName": "RR Ratio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        480,
+        -224
+      ],
+      "id": "d79d7dcd-1890-4d2d-b0e9-b96e49057346",
+      "name": "Send Trade Analysis Log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "rkF22hKLGMt6AmXn",
+          "name": "Google Sheets account 3"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Trade Analysis Engine",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trade Submission Trigger": {
+      "main": [
+        [
+          {
+            "node": "Trade Data Normalizer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trade Data Normalizer": {
+      "main": [
+        [
+          {
+            "node": "Calculate Risk Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Risk Metrics": {
+      "main": [
+        [
+          {
+            "node": "AI Trade Analysis Engine",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge AI & Trade Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Trade Analysis Engine": {
+      "main": [
+        [
+          {
+            "node": "Merge AI & Trade Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge AI & Trade Data": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Trade Quality Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trade Quality Decision": {
+      "main": [
+        [
+          {
+            "node": "Send Positive Trade Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Trade Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Positive Trade Feedback": {
+      "main": [
+        [
+          {
+            "node": "Send Trade Analysis Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Trade Warning": {
+      "main": [
+        [
+          {
+            "node": "Send Trade Analysis Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "719fd6ea-9d11-4058-9e88-4f31c51fe095",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3c9a647753428c5fc912928447e11a27c54f502f3e0264be3d10bee50e8c0ce0"
+  },
+  "id": "6EWUnjCiGMN2TL6a",
+  "tags": []
+}
